@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+    <meta charset="UTF-8">
+    <title>MVPtiers | Elite Leaderboard</title>
+    <style>
+        :root {
+            --bg-dark: #030407;
+            --card-bg: rgba(13, 15, 24, 0.8);
+            --panel-bg: rgba(10, 12, 20, 0.6);
+            --accent-purple: #7c3aed;
+            --accent-blue: #00d4ff;
+            --accent-yellow: #f1c40f;
+            --clr-netherite: #464646; --clr-diamond: #33ebff; --clr-gold: #ffcc00; --clr-iron: #d1d1d1;
+            --grad-gold: linear-gradient(90deg, #ffe259 0%, #ffa751 100%);
+            --grad-silver: linear-gradient(90deg, #e6e9f0 0%, #bdc3c7 100%);
+            --grad-bronze: linear-gradient(90deg, #ff9d6c 0%, #9e4b1d 100%);
+        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); color: #ffffff; display: flex; flex-direction: column; align-items: center; padding: 80px 20px; margin: 0; min-height: 100vh; overflow-x: hidden; position: relative; }
+        .universe-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: var(--bg-dark); }
+        .nebula { position: absolute; width: 80vw; height: 80vh; border-radius: 50%; filter: blur(150px); opacity: 0.15; animation: moveNebula 25s infinite alternate ease-in-out; }
+        .neb-1 { background: var(--accent-purple); top: -20%; left: -20%; }
+        .neb-2 { background: var(--accent-blue); bottom: -20%; right: -10%; }
+        @keyframes moveNebula { from { transform: translate(0, 0) scale(1); } to { transform: translate(10vw, 15vh) scale(1.2); } }
+        .grid-layer { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 60px 60px; transform: perspective(500px) rotateX(20deg); animation: gridScroll 40s linear infinite; }
+        @keyframes gridScroll { from { background-position: 0 0; } to { background-position: 0 600px; } }
+        .logo { font-size: 6em; font-weight: 900; letter-spacing: -4px; margin-bottom: 60px; background: linear-gradient(135deg, #fff 0%, #a855f7 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 30px rgba(124, 58, 237, 0.4)); text-align:center; }
+        .admin-login-btn { position: fixed; top: 25px; right: 25px; padding: 10px 25px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #aaa; border-radius: 30px; cursor: pointer; backdrop-filter: blur(10px); z-index: 9999; text-transform: uppercase; font-size: 0.8em; font-weight: bold; }
+        .tabs-container { display: flex; gap: 20px; margin-bottom: 50px; z-index: 10; }
+        .tab-btn { padding: 16px 50px; border: 2px solid var(--accent-yellow); background: rgba(241, 196, 15, 0.05); color: var(--accent-yellow); font-weight: 800; text-transform: uppercase; border-radius: 15px; cursor: pointer; transition: 0.4s; }
+        .tab-btn.active { background: var(--accent-yellow); color: #000; box-shadow: 0 0 40px rgba(241, 196, 15, 0.3); }
+        .top-panel-wrapper { position: relative; padding: 3px; border-radius: 32px; background: linear-gradient(45deg, transparent, #7c3aed, #00d4ff, transparent); background-size: 400% 400%; animation: borderGlow 8s linear infinite; z-index: 10; width: 100%; max-width: 950px; }
+        @keyframes borderGlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        .top-panel { background: var(--panel-bg); border-radius: 30px; padding: 40px; backdrop-filter: blur(40px); width: 100%; min-height: 100px; box-sizing: border-box; }
+        .player-list { display: flex; flex-direction: column; gap: 15px; }
+        .player-card { background: var(--card-bg); padding: 22px 35px; border-radius: 20px; display: grid; grid-template-columns: 45px 1fr 250px 140px; align-items: center; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+        body.admin-mode .player-card { grid-template-columns: 45px 1fr 250px 140px 45px; }
+        
+        .player-card.rank-1 { border: 3px solid #ffcc00 !important; box-shadow: 0 0 20px rgba(255, 204, 0, 0.3); transform: scale(1.02); }
+        .player-card.rank-2 { border: 3px solid #ffffff !important; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+        .player-card.rank-3 { border: 3px solid #cd7f32 !important; box-shadow: 0 0 15px rgba(205, 127, 50, 0.2); }
+
+        .nickname { font-size: 1.7em; font-weight: 800; color: #fff; }
+        .rank-1 .nickname { background: var(--grad-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .rank-2 .nickname { background: var(--grad-silver); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .rank-3 .nickname { background: var(--grad-bronze); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .tier-badge { font-weight: 900; text-transform: uppercase; padding: 8px 20px; border-radius: 12px; display: flex; align-items: center; gap: 10px; justify-content: center; font-size: 1em; width: fit-content; margin: 0 auto; }
+        .t-netherite { background: rgba(70, 70, 70, 0.3); border: 1px solid var(--clr-netherite); color: #fff; }
+        .t-diamond { background: rgba(51, 226, 255, 0.15); border: 1px solid var(--clr-diamond); color: var(--accent-blue); }
+        .t-gold { background: rgba(255, 204, 0, 0.15); border: 1px solid var(--clr-gold); color: var(--clr-gold); }
+        .t-iron { background: rgba(209, 209, 209, 0.15); border: 1px solid var(--clr-iron); color: var(--clr-iron); }
+
+        .points { text-align: right; font-weight: 900; color: #fff; font-size: 1.5em; }
+        .del-btn { display: none; background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 1.5em; }
+        body.admin-mode .del-btn { display: block; }
+        .admin-panel { display: none; margin-top: 40px; background: rgba(15, 17, 26, 0.98); padding: 35px; border-radius: 25px; flex-wrap: wrap; gap: 15px; border: 1px solid var(--accent-purple); width: 100%; max-width: 880px; z-index: 10; box-sizing: border-box; }
+        input, select, .add-btn, .save-btn { padding: 15px; border-radius: 10px; border: 1px solid #2d3247; background: #05060a; color: white; outline: none; }
+        .add-btn { background: var(--accent-purple); border: none; font-weight: bold; cursor: pointer; padding: 15px 45px; }
+        .save-btn { background: #27ae60; border: none; font-weight: bold; cursor: pointer; padding: 15px 30px; }
+    </style>
+</head>
+<body id="mainBody" class="">
+    <div class="universe-bg"><div class="grid-layer"></div><div class="nebula neb-1"></div><div class="nebula neb-2"></div></div>
+    <button class="admin-login-btn" id="loginBtn" onclick="tryLogin()" fdprocessedid="p9ftgv">Admin Hub</button>
+    <h1 class="logo">MVPtiers</h1>
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab(this, '1-3')" fdprocessedid="z9jxr">1-3 ВЖ</button>
+        <button class="tab-btn" onclick="switchTab(this, '4')" fdprocessedid="97iwsf">4 ВЖ</button>
+    </div>
+    <div class="top-panel-wrapper"><div class="top-panel">
+        <div id="page13" class="page-content" style="display:block;"><div id="list13" class="player-list"><div class="player-card rank-1"><span class="rank">1</span><span class="nickname">test1</span><div class="tier-badge t-netherite">⚔ Незеритовый тир 1</div><div class="points">99</div><button class="del-btn" onclick="removePlayer(0)" fdprocessedid="0vg1h2" style="display: none;">✕</button></div><div class="player-card rank-2"><span class="rank">2</span><span class="nickname">test2</span><div class="tier-badge t-diamond">⚔ Алмазный тир 1</div><div class="points">89</div><button class="del-btn" onclick="removePlayer(1)" fdprocessedid="ukjn92" style="display: none;">✕</button></div><div class="player-card rank-3"><span class="rank">3</span><span class="nickname">test3</span><div class="tier-badge t-gold">⚔ Золотой тир 1</div><div class="points">69</div><button class="del-btn" onclick="removePlayer(2)" fdprocessedid="mcx2dk" style="display: none;">✕</button></div><div class="player-card "><span class="rank">4</span><span class="nickname">test4</span><div class="tier-badge t-iron">⚔ Железный тир 1</div><div class="points">59</div><button class="del-btn" onclick="removePlayer(3)" fdprocessedid="w3yjno" style="display: none;">✕</button></div></div></div>
+        <div id="page4" class="page-content" style="display:none;"><div id="list4" class="player-list"></div></div>
+    </div></div>
+    <div class="admin-panel" id="adminPanel" style="display: none;">
+        <input type="text" id="nickInput" placeholder="Никнейм" fdprocessedid="axnsd">
+        <input type="text" id="pointsInput" placeholder="Очки" fdprocessedid="alflik">
+        <select id="sectionSelect" fdprocessedid="dh69b"><option value="1-3">Раздел 1-3 ВЖ</option><option value="4">Раздел 4 ВЖ</option></select>
+        <select id="tierSelect" fdprocessedid="qv9c3q">
+            <optgroup label="Незерит"><option value="t-netherite">Незеритовый тир 1</option><option value="t-netherite">Незеритовый тир 2</option><option value="t-netherite">Незеритовый тир 3</option></optgroup>
+            <optgroup label="Алмаз"><option value="t-diamond">Алмазный тир 1</option><option value="t-diamond">Алмазный тир 2</option><option value="t-diamond">Алмазный тир 3</option></optgroup>
+            <optgroup label="Золото"><option value="t-gold">Золотой тир 1</option><option value="t-gold">Золотой тир 2</option><option value="t-gold">Золотой тир 3</option></optgroup>
+            <optgroup label="Железо"><option value="t-iron">Железный тир 1</option><option value="t-iron">Железный тир 2</option><option value="t-iron">Железный тир 3</option></optgroup>
+        </select>
+        <button class="add-btn" onclick="addPlayer()" fdprocessedid="ssetj">Добавить</button>
+        <button class="save-btn" onclick="exportCode()" fdprocessedid="0bz9s">💾 Сохранить изменения</button>
+    </div>
+
+    <script id="playersData">
+        // СПИСОК ИГРОКОВ
+        let players = [
+    {
+        "nick": "test1",
+        "pts": "99",
+        "section": "1-3",
+        "tText": "Незеритовый тир 1",
+        "tClass": "t-netherite"
+    },
+    {
+        "nick": "test2",
+        "pts": "89",
+        "section": "1-3",
+        "tText": "Алмазный тир 1",
+        "tClass": "t-diamond"
+    },
+    {
+        "nick": "test3",
+        "pts": "69",
+        "section": "1-3",
+        "tText": "Золотой тир 1",
+        "tClass": "t-gold"
+    },
+    {
+        "nick": "test4",
+        "pts": "59",
+        "section": "1-3",
+        "tText": "Железный тир 1",
+        "tClass": "t-iron"
+    }
+];
+    </script>
+
+    <script>
+        const MY_PASS = "132132_1183";
+        let isAdmin = false;
+
+        function render() {
+            const list13 = document.getElementById('list13');
+            const list4 = document.getElementById('list4');
+            list13.innerHTML = ''; list4.innerHTML = '';
+            players.sort((a, b) => (parseInt(b.pts.replace(/\s+/g, '')) || 0) - (parseInt(a.pts.replace(/\s+/g, '')) || 0));
+            players.forEach((p, index) => {
+                const is13 = p.section === '1-3';
+                const count = is13 ? ++list13.children.length : ++list4.children.length;
+                const card = document.createElement('div');
+                card.className = `player-card ${count <= 3 ? 'rank-'+count : ''}`;
+                card.innerHTML = `<span class="rank">${count}</span><span class="nickname">${p.nick}</span><div class="tier-badge ${p.tClass}">⚔ ${p.tText}</div><div class="points">${p.pts}</div><button class="del-btn" onclick="removePlayer(${index})">✕</button>`;
+                (is13 ? list13 : list4).appendChild(card);
+            });
+        }
+
+        function addPlayer() {
+            const nick = document.getElementById('nickInput').value.trim();
+            const pts = document.getElementById('pointsInput').value.trim() || "0";
+            const section = document.getElementById('sectionSelect').value;
+            const sel = document.getElementById('tierSelect');
+            if(!nick) return;
+            players.push({ nick, pts, section, tText: sel.options[sel.selectedIndex].text, tClass: sel.value });
+            render();
+        }
+
+        function removePlayer(index) { if(confirm("Удалить игрока?")) { players.splice(index, 1); render(); } }
+
+        function tryLogin() {
+            let pass = prompt("Пароль:");
+            if (pass === MY_PASS) {
+                isAdmin = true;
+                document.getElementById('loginBtn').innerText = "Logout";
+                document.getElementById('adminPanel').style.display = 'flex';
+                document.getElementById('mainBody').classList.add('admin-mode');
+                render();
+            }
+        }
+
+        function switchTab(btn, section) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('page13').style.display = (section === '1-3') ? 'block' : 'none';
+            document.getElementById('page4').style.display = (section === '4') ? 'block' : 'none';
+        }
+
+        // УЛУЧШЕННАЯ ФУНКЦИЯ ЭКСПОРТА
+        function exportCode() {
+            // 1. Создаем копию текущей страницы
+            let clone = document.documentElement.cloneNode(true);
+
+            // 2. Очищаем копию от признаков админа
+            clone.querySelector('body').classList.remove('admin-mode');
+            clone.querySelector('#adminPanel').style.display = 'none';
+            clone.querySelector('#loginBtn').innerText = "Admin Hub";
+            
+            // 3. Удаляем из таблицы кнопки "крестики", если они вдруг остались в DOM
+            clone.querySelectorAll('.del-btn').forEach(btn => btn.style.display = 'none');
+
+            // 4. Получаем чистый HTML
+            let updatedHTML = clone.outerHTML;
+
+            // 5. Вшиваем список игроков в скрипт
+            let playersString = `let players = ${JSON.stringify(players, null, 4)};`;
+            updatedHTML = updatedHTML.replace(/let players = \[.*?\];/s, playersString);
+            
+            // 6. Скачиваем файл
+            let blob = new Blob(["<!DOCTYPE html>\n" + updatedHTML], {type: "text/html"});
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "index.html";
+            a.click();
+            alert("Готово! Теперь этот index.html будет БЕЗ админки для зрителей. Загрузи его на GitHub.");
+        }
+
+        render();
+    </script>
+
+
+<span id="PING_IFRAME_FORM_DETECTION" style="display: none;"></span></body></html>
