@@ -49,8 +49,9 @@
         .del-btn { display: none; background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 1.5em; }
         body.admin-mode .del-btn { display: block; }
         .admin-panel { display: none; margin-top: 40px; background: rgba(15, 17, 26, 0.98); padding: 35px; border-radius: 25px; flex-wrap: wrap; gap: 15px; border: 1px solid var(--accent-purple); width: 100%; max-width: 880px; z-index: 10; box-sizing: border-box; }
-        input, select, .add-btn { padding: 15px; border-radius: 10px; border: 1px solid #2d3247; background: #05060a; color: white; outline: none; }
-        .add-btn { background: var(--accent-purple); border: none; font-weight: bold; cursor: pointer; padding: 15px 45px; color: white; }
+        input, select, .add-btn, .save-btn { padding: 15px; border-radius: 10px; border: 1px solid #2d3247; background: #05060a; color: white; outline: none; }
+        .add-btn { background: var(--accent-purple); border: none; font-weight: bold; cursor: pointer; padding: 15px 45px; }
+        .save-btn { background: #27ae60; border: none; font-weight: bold; cursor: pointer; padding: 15px 30px; }
     </style>
 </head>
 <body id="mainBody">
@@ -75,95 +76,91 @@
             <optgroup label="Золото"><option value="t-gold">Золотой тир 1</option><option value="t-gold">Золотой тир 2</option><option value="t-gold">Золотой тир 3</option></optgroup>
             <optgroup label="Железо"><option value="t-iron">Железный тир 1</option><option value="t-iron">Железный тир 2</option><option value="t-iron">Железный тир 3</option></optgroup>
         </select>
-        <button class="add-btn" onclick="addPlayer()">Обновить Топ</button>
+        <button class="add-btn" onclick="addPlayer()">Добавить</button>
+        <button class="save-btn" onclick="exportCode()">💾 Сохранить и скачать файл</button>
     </div>
 
+    <script id="playersData">
+        // ЭТО ТВОЙ СПИСОК ИГРОКОВ. ОН БУДЕТ ОБНОВЛЯТЬСЯ САМ.
+        let players = [];
+    </script>
+
     <script>
-        // ТВОЯ ПЕРЕВІРЕНА АДРЕСА
-        const DB_BASE = "https://firebasedatabase.app";
         const MY_PASS = "132132_1183";
         let isAdmin = false;
 
-        async function loadData() {
-            try {
-                const response = await fetch(`${DB_BASE}/players.json`);
-                const data = await response.json();
-                const list13 = document.getElementById('list13');
-                const list4 = document.getElementById('list4');
-                list13.innerHTML = ''; list4.innerHTML = '';
-                if (!data) return;
+        function render() {
+            const list13 = document.getElementById('list13');
+            const list4 = document.getElementById('list4');
+            list13.innerHTML = ''; list4.innerHTML = '';
+            
+            players.sort((a, b) => (parseInt(b.pts.replace(/\s+/g, '')) || 0) - (parseInt(a.pts.replace(/\s+/g, '')) || 0));
 
-                const playersArray = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-                playersArray.sort((a, b) => (parseInt(b.pts.replace(/\s+/g, '')) || 0) - (parseInt(a.pts.replace(/\s+/g, '')) || 0));
-
-                let c13 = 0, c4 = 0;
-                playersArray.forEach((p) => {
-                    const is13 = p.section === '1-3';
-                    const count = is13 ? ++c13 : ++c4;
-                    const card = document.createElement('div');
-                    card.className = `player-card`;
-                    if (count <= 3) card.classList.add(`rank-${count}`);
-                    card.innerHTML = `
-                        <span class="rank">${count}</span>
-                        <span class="nickname">${p.nick}</span>
-                        <div class="tier-badge ${p.tClass}">⚔ ${p.tText}</div>
-                        <div class="points">${p.pts}</div>
-                        <button class="del-btn" onclick="deletePlayer('${p.id}')">✕</button>
-                    `;
-                    (is13 ? list13 : list4).appendChild(card);
-                });
-            } catch (e) { console.error("Load error:", e); }
+            let c13 = 0, c4 = 0;
+            players.forEach((p, index) => {
+                const is13 = p.section === '1-3';
+                const count = is13 ? ++c13 : ++c4;
+                const card = document.createElement('div');
+                card.className = `player-card`;
+                if (count <= 3) card.classList.add(`rank-${count}`);
+                card.innerHTML = `
+                    <span class="rank">${count}</span>
+                    <span class="nickname">${p.nick}</span>
+                    <div class="tier-badge ${p.tClass}">⚔ ${p.tText}</div>
+                    <div class="points">${p.pts}</div>
+                    <button class="del-btn" onclick="removePlayer(${index})">✕</button>
+                `;
+                (is13 ? list13 : list4).appendChild(card);
+            });
         }
 
-        async function addPlayer() {
+        function addPlayer() {
             const nick = document.getElementById('nickInput').value.trim();
             const pts = document.getElementById('pointsInput').value.trim() || "0";
             const section = document.getElementById('sectionSelect').value;
             const sel = document.getElementById('tierSelect');
-            if(!nick) return alert("Введите ник!");
-
-            const newPlayer = { nick, pts, section, tText: sel.options[sel.selectedIndex].text, tClass: sel.value };
-            
-            try {
-                const res = await fetch(`${DB_BASE}/players.json`, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(newPlayer) 
-                });
-                if (!res.ok) throw new Error();
-                document.getElementById('nickInput').value = '';
-                document.getElementById('pointsInput').value = '';
-                loadData();
-            } catch (e) { alert("Ошибка! Проверьте вкладку Rules у Firebase."); }
+            if(!nick) return;
+            players.push({ nick, pts, section, tText: sel.options[sel.selectedIndex].text, tClass: sel.value });
+            render();
         }
 
-        async function deletePlayer(id) {
-            if(confirm("Видалити?")) {
-                await fetch(`${DB_BASE}/players/${id}.json`, { method: 'DELETE' });
-                loadData();
-            }
+        function removePlayer(index) {
+            if(confirm("Удалить?")) { players.splice(index, 1); render(); }
         }
 
-        window.tryLogin = function() {
+        function tryLogin() {
             let pass = prompt("Пароль:");
             if (pass === MY_PASS) {
                 isAdmin = true;
                 document.getElementById('loginBtn').innerText = "Logout";
                 document.getElementById('adminPanel').style.display = 'flex';
                 document.getElementById('mainBody').classList.add('admin-mode');
-                loadData();
+                render();
             }
         }
 
-        window.switchTab = function(btn, section) {
+        function switchTab(btn, section) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById('page13').style.display = (section === '1-3') ? 'block' : 'none';
             document.getElementById('page4').style.display = (section === '4') ? 'block' : 'none';
         }
 
-        loadData();
-        setInterval(loadData, 10000); // Оновлювати кожні 10 сек
+        // ФУНКЦИЯ ЭКСПОРТА (ОБНОВЛЯЕТ КОД И СКАЧИВАЕТ ФАЙЛ)
+        function exportCode() {
+            let currentHTML = document.documentElement.outerHTML;
+            let playersString = `let players = ${JSON.stringify(players, null, 4)};`;
+            let updatedHTML = currentHTML.replace(/let players = \[.*?\];/s, playersString);
+            
+            let blob = new Blob(["<!DOCTYPE html>\n" + updatedHTML], {type: "text/html"});
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "index.html";
+            a.click();
+            alert("Файл index.html скачан! Загрузи его на GitHub.");
+        }
+
+        render();
     </script>
 </body>
 </html>
