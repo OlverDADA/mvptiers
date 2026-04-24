@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>MVPtiers | Ultra Edition</title>
+    <title>MVPtiers | Live Edition</title>
     <style>
         :root {
             --bg-dark: #030407;
@@ -79,13 +79,14 @@
     </div>
 
     <script>
-        const DB_URL = "https://firebasedatabase.app";
+        // ВИПРАВЛЕНА АДРЕСА БАЗИ
+        const DB_BASE = "https://firebasedatabase.app";
         const MY_PASS = "132132_1183";
         let isAdmin = false;
 
         async function loadData() {
             try {
-                const response = await fetch(DB_URL);
+                const response = await fetch(`${DB_BASE}/players.json`);
                 const data = await response.json();
                 const list13 = document.getElementById('list13');
                 const list4 = document.getElementById('list4');
@@ -123,17 +124,21 @@
             const newPlayer = { nick, pts, section, tText: sel.options[sel.selectedIndex].text, tClass: sel.value };
             
             try {
-                await fetch(DB_URL, { method: 'POST', body: JSON.stringify(newPlayer) });
+                const res = await fetch(`${DB_BASE}/players.json`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(newPlayer) 
+                });
+                if (!res.ok) throw new Error();
                 document.getElementById('nickInput').value = '';
                 document.getElementById('pointsInput').value = '';
                 loadData();
-            } catch (e) { alert("Ошибка сохранения!"); }
+            } catch (e) { alert("Ошибка сохранения! Перевірте Rules у Firebase."); }
         }
 
         async function deletePlayer(id) {
             if(confirm("Удалить гравця?")) {
-                const delUrl = `https://firebasedatabase.app{id}.json`;
-                await fetch(delUrl, { method: 'DELETE' });
+                await fetch(`${DB_BASE}/players/${id}.json`, { method: 'DELETE' });
                 loadData();
             }
         }
@@ -157,7 +162,7 @@
         }
 
         loadData();
-        setInterval(loadData, 10000); // Автооновлення кожні 10 сек
+        setInterval(loadData, 10000);
     </script>
 </body>
 </html>
